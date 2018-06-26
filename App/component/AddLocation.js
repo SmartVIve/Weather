@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {
+    StyleSheet,
     View,
     Text,
     TextInput,
@@ -24,6 +25,8 @@ export default class AddLocation extends Component {
             let json = await response.json();
             if (json.HeWeather6[0].status === 'ok') {
                 this.setState({inputText: text, data: json.HeWeather6[0].basic});
+            }else {
+                this.setState({inputText: text, data: ''});
             }
 
         } catch (error) {
@@ -35,25 +38,56 @@ export default class AddLocation extends Component {
     render() {
         const {navigate,goBack,state} = this.props.navigation;
         return (
-            <View style={{backgroundColor:"#efeff4"}}>
+            <View style={styles.textInputBg}>
                 <StatusBar translucent={false} barStyle="dark-content"/>
-                <TextInput style={{height:40,marginLeft:16,marginRight:16,marginTop:8,marginBottom:8,borderWidth:1,borderColor:"#DDDDDD",borderRadius:8,backgroundColor:"white"}} placeholder="输入城市" underlineColorAndroid="transparent"  onChangeText={(text) => this._onTextChange(text)}/>
-                <View style={{height:1,backgroundColor:"#d6d7dc"}}/>
+                <TextInput style={styles.textInput} placeholder="输入城市" underlineColorAndroid="transparent"  onChangeText={(text) => this._onTextChange(text)}/>
+                <View style={styles.separator}/>
                 <FlatList
                     data={this.state.data}
                     keyExtractor={(item, index) => index.toString()}
+                    ItemSeparatorComponent={()=><View style={styles.separator}/>}
                     renderItem={({item}) =>
                         <View>
-                            <TouchableHighlight style={{backgroundColor:"white"}} underlayColor="#DDDDDD" onPress={()=>{state.params.callback(item.location);goBack()}}>
-                                    <Text style={{marginLeft:24,marginRight:24,marginTop:16,marginBottom:16,flex:1,fontSize:16}} >{item.admin_area}-{item.location}</Text>
+                            <TouchableHighlight style={styles.itemBg} underlayColor="#DDDDDD" onPress={()=>{state.params.callback(item.location);goBack()}}>
+                                    <Text style={styles.item} >{item.admin_area}-{item.parent_city}-{item.location}</Text>
                             </TouchableHighlight>
-                            <View style={{height:1,backgroundColor:"#DDDDDD"}}/>
                         </View>
                     }
                 />
             </View>
         );
     }
-
-
 }
+
+const styles = StyleSheet.create({
+    textInputBg:{
+        backgroundColor:"#efeff4"
+    },
+    textInput:{
+        height:40,
+        marginLeft:16,
+        marginRight:16,
+        marginTop:8,
+        marginBottom:8,
+        borderWidth:1,
+        borderColor:"#DDDDDD",
+        borderRadius:8,
+        backgroundColor:"white"
+    },
+    item:{
+        flex:1,
+        marginLeft:24,
+        marginRight:24,
+        marginTop:16,
+        marginBottom:16,
+        fontSize:16
+    },
+    itemBg:{
+        backgroundColor:"white"
+    },
+    separator:{
+        height:1,
+        backgroundColor:"#d6d7dc",
+        opacity:0.5,
+    }
+});

@@ -9,6 +9,17 @@ import {
 
 
 export default class Forecast extends Component {
+    _weekUtils(day,index){
+        if (index === 0){
+            return '今天'
+        }else if (index === 1){
+            return '明天'
+        }else if (index ===2){
+            return '后天'
+        }else {
+            return '星期' + "日一二三四五六".slice(day,day+1)
+        }
+    }
     render() {
         return (
             <FlatList
@@ -16,7 +27,7 @@ export default class Forecast extends Component {
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({item, index}) =>
                     <View style={styles.forecastFlatList}>
-                        <Text style={styles.textColor}>{item.date.substr(8,10)+'日'}</Text>
+                        <Text style={styles.textColor}>{item.date.substr(8,10)+'日 '+this._weekUtils(new Date(item.date).getDay(),index)}</Text>
                         <View style={{flexDirection: "row", justifyContent: "center", alignItems: "center"}}>
                             <Image style={styles.weatherIcon}
                                    source={{uri: 'https://cdn.heweather.com/cond_icon/' + item.cond_code_d + '.png'}}/>
@@ -34,8 +45,8 @@ const styles = StyleSheet.create({
     forecastFlatList: {
         height: 48,
         flexDirection: "row",
-        marginLeft: 16,
-        marginRight: 16,
+        marginLeft: 24,
+        marginRight: 24,
         justifyContent: "space-between",
         alignItems: "center"
     },

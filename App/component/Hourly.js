@@ -10,7 +10,7 @@ import {
 export default class Hourly extends Component {
     render() {
         let time = this.props.hourly === '' ? null :
-            <Text style={styles.upDateTime}>{this.props.hourly.update.loc.substr(11, 15) + "时更新"}</Text>
+            <Text style={styles.upDateTime}>{new Date().getHours()+':'+ (new Date().getMinutes()<10 ? '0'+new Date().getMinutes() : new Date().getMinutes()) + "时更新"}</Text>
         return (
             <View>
                 {time}
@@ -18,6 +18,7 @@ export default class Hourly extends Component {
                 <FlatList
                     data={this.props.hourly.hourly}
                     horizontal={true}
+                    showsHorizontalScrollIndicator={false}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({item}) =>
                         <View style={styles.hourlyFlatList}>
@@ -40,10 +41,10 @@ const styles = StyleSheet.create({
         height: 96,
         marginLeft: 16,
         marginRight: 16,
-        marginTop: 8,
-        marginBottom: 8,
+        marginTop: 4,
+        marginBottom: 4,
         flexDirection: "column",
-        justifyContent: "space-between",
+        justifyContent: "space-around",
         alignItems: "center",
     },
     textColor: {
@@ -51,7 +52,8 @@ const styles = StyleSheet.create({
     },
     separator: {
         height: 1,
-        backgroundColor: "white"
+        backgroundColor: "white",
+        opacity:0.5
     },
     weatherIcon: {
         width: 32,
@@ -60,6 +62,7 @@ const styles = StyleSheet.create({
     },
     upDateTime: {
         marginLeft: 16,
+        marginBottom:4,
         color: "white"
     }
 });

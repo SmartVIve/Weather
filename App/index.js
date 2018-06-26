@@ -33,26 +33,62 @@ class Weather extends Component<Props> {
         this.state = {
             isRefreshing: true,
             error: '',
-            location: '北京',
-            locationItem: '',
+            location: '',
+            locationList: '',
+            lastLocation:'',
             tmp: '',
             cond: '',
             forecast: '',
-            hourly: ''
+            hourly: '',
+            weather:[{}]
         };
-        this._onRefresh();
 
-        //读取储存数据
-        AsyncStorage.getItem('location', (error, result) => {
+
+        AsyncStorage.getItem('lastLocation',(error,result)=>{
+           if (!error){
+               if (result === null){
+                   this.setState({location:'北京'})
+               }else {
+                   this.setState({location:result})
+               }
+               //刷新数据
+               this._onRefresh();
+           }
+        });
+
+        //读取城市列表
+        AsyncStorage.getItem('locationList', (error, result) => {
             if (!error) {
-                if (result === null){
-                    this.setState({locationItem:['北京']})
+                if (result === null || result === '[]'){
+                    this.setState({locationList:['北京']})
+                    this.locationListWeather('北京')
                 }else {
-                    this.setState({locationItem: JSON.parse(result)})
+                    this.setState({locationList: JSON.parse(result)},()=>{
+                        this.state.locationList.map((location)=>{
+                            this.locationListWeather(location)
+                        })
+                    })
                 }
             }
         });
+
     }
+
+    //抽屉栏天气获取
+    async locationListWeather(location) {
+        //七天
+        let response = await fetch("https://free-api.heweather.com/s6/weather/forecast?parameters&key=aaf8efc299ca4d5ebeb402a73c69accd&location=" + location);
+        let json = await response.json();
+        let tmp_min = json.HeWeather6[0].daily_forecast[0].tmp_min;
+        let tmp_max = json.HeWeather6[0].daily_forecast[0].tmp_max;
+        let cond = json.HeWeather6[0].daily_forecast[0].cond_code_d;
+        let weather = this.state.weather.slice(0);
+        let city =json.HeWeather6[0].basic.location;
+        weather[0][city] = {tmp:tmp_min + '~' + tmp_max + '℃',cond:cond};
+        this.setState({weather:weather});
+        //console.log(this.state.weather)
+    }
+
 
     //刷新
     async _onRefresh() {
@@ -89,67 +125,95 @@ class Weather extends Component<Props> {
         } catch (error) {
             console.log("error" + error);
             this.setState({error: error.toString(), isRefreshing: false});
+        }finally {
+            AsyncStorage.setItem('lastLocation',this.state.location);
         }
     }
 
+    //添加地址
     addLocation(location) {
         this.setState({location: location}, () => {
             this.refs.drawer.closeDrawer();
             this._onRefresh();
+        });
+        let [...locationList] = this.state.locationList;
+        if (locationList.indexOf(location) === -1) {
+            locationList.push(location);
+            this.setState({locationList: locationList},()=>{
+                this.state.locationList.map((location)=>{
+                    this.locationListWeather(location)
+                })
+            });
+            this.saveLocation(locationList);
+        }
+    }
 
-            let locationItem = this.state.locationItem;
-            if (locationItem.indexOf(location) === -1) {
-                locationItem.push(location);
-                console.log(locationItem);
-                this.setState({locationItem: locationItem});
-                let data = JSON.stringify(locationItem);
-                AsyncStorage.setItem('location', data, (error) => {
-                    if (error) {
-                        console.log('fail');
-                    } else {
-                        console.log('success');
-                    }
-                });
+    //删除地址
+    removeLocation(location){
+        let [...locationList] = this.state.locationList;
+        let index = locationList.indexOf(location);
+        if (index !== -1) {
+            locationList.splice(index,1);
+            this.setState({locationList:locationList});
+            this.saveLocation(locationList);
+        }
+    }
+
+    //保存地址
+    saveLocation(locationList){
+        let data = JSON.stringify(locationList);
+        AsyncStorage.setItem('locationList', data, (error) => {
+            if (error) {
+                console.log('fail');
+            } else {
+                console.log('success');
             }
-        })
+        });
     }
 
 
+
+
     render() {
-        //获取屏幕宽高
-        const {width, height} = Dimensions.get('window');
-
-
         return (
             <DrawerLayout
                 ref='drawer'
                 drawerWidth={300}
                 drawerPosition={DrawerLayout.positions.Left}
+                onDrawerClose={()=>this.navigationView.setState({open:''})}
                 renderNavigationView={() =>
-                    <NavigationView locationItem={this.state.locationItem}
-                                       addLocation={(location) => {this.addLocation(location)}}
-                                       navigation={this.props.navigation}/>}>
+                    <NavigationView
+                        ref={(c)=>{this.navigationView = c}}
+                        locationList={this.state.locationList}
+                        weather={this.state.weather}
+                        addLocation={(location) => {this.addLocation(location)}}
+                        removeLocation={(location)=>{this.removeLocation(location)}}
+                        navigation={this.props.navigation}/>}>
                 <StatusBar translucent={true} backgroundColor="transparent"/>
-                <Image style={styles.bg} source={require('./images/bg_0.jpg')}/>
+                <Image ref='image' style={styles.bg} source={require('./images/bg.jpg')}/>
                 <View style={styles.content}>
-                    <Header title={this.state.location} onPress={() => this.refs.drawer.openDrawer()}/>
+                    <Header title={this.state.location} onPress={() => {this.refs.drawer.openDrawer()}}/>
+                    <ScrollView
+                        style={styles.scrollView}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={this.state.isRefreshing}
+                                onRefresh={this._onRefresh.bind(this)}/>
+                        }>
 
                     {this.state.error === '' ? (
-                        <ScrollView
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={this.state.isRefreshing}
-                                    onRefresh={this._onRefresh.bind(this)}/>
-                            }>
+                       <View>
                             <Text style={styles.tmp}>{this.state.tmp}</Text>
                             <Text style={styles.cond}>{this.state.cond}</Text>
                             <Hourly hourly={this.state.hourly}/>
                             <Forecast forecast={this.state.forecast}/>
-                        </ScrollView>
+                       </View>
                     ) : (
-                        <Text style={styles.error}>{this.state.error}</Text>
+                            <Text style={styles.error}>{this.state.error}</Text>
                     )}
 
+                    </ScrollView>
                 </View>
             </DrawerLayout>
         )
@@ -191,6 +255,9 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    scrollView:{
+        width:width
     },
     tmp: {
         textAlign: "center",

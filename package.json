@@ -10,6 +10,7 @@
     "react": "16.3.1",
     "react-native": "0.55.4",
     "react-native-drawer-layout": "^2.0.0",
+    "react-native-swipeout": "^2.3.3",
     "react-navigation": "^2.3.1"
   },
   "devDependencies": {
